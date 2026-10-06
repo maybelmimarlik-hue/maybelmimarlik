@@ -1,0 +1,15 @@
+# Netlify CLI yerel dosyalari
+.netlify/
+
+# derleme listeleri (gorseller klasorunde uretilir, tekrar uretilebilir)
+gorseller/*.json
+
+# isletim sistemi
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# gecici / editor
+*.tmp
+*.bak
+~$*
