@@ -1336,8 +1336,7 @@ function buildCodewords(bytes, ver, lvl) {
     email: 'maybelmimarlik@gmail.com',
     igUrl: 'https://www.instagram.com/m.seyfettinbulut',
     mapQuery: 'Espiye, Giresun',
-    web: '',
-    qrMode: 'mecard',
+    web: 'https://maybelmimarlik-hue.github.io/maybelmimarlik/',
     services: defServices()
   };
   var CFG_KEY = 'maybel.card.cfg.v2';
@@ -1352,6 +1351,10 @@ function buildCodewords(bytes, ver, lvl) {
     var p = {};
     try { p = JSON.parse(raw) || {}; } catch (e) { return c; }
     Object.keys(p).forEach(function (k) { if (k !== 'services') c[k] = p[k]; });
+    /* QR artik daima sayfa adresini acar; eski "mecard" secimi ve bos web adresini duzelt.
+       (Kullanicinin kaydettigi diger tum bilgiler korunur.) */
+    delete c.qrMode;
+    if (!String(c.web || '').trim()) c.web = DEF.web;
     if (Array.isArray(p.services) && p.services.length) {
       c.services = p.services.slice(0, 5).map(function (s, i) {
         var d = defServices()[i] || { t: 'Hizmet ' + (i + 1), d: '', items: [] };
@@ -1567,13 +1570,10 @@ function buildCodewords(bytes, ver, lvl) {
       { k: 'email', l: 'E-posta', t: 'email' },
       { k: 'igUrl', l: 'Instagram bağlantısı (QR içinde)', t: 'url' },
       { k: 'mapQuery', l: 'Harita merkezi', t: 'text' },
-      { k: 'web', l: 'Web sitesi', t: 'url' }
+      { k: 'web', l: 'Web sitesi (QR bu adresi açar)', t: 'url' }
     ] },
     { g: 'WhatsApp mesajı', f: [
       { k: 'waText', l: 'Otomatik gönderilecek metin', t: 'textarea' }
-    ] },
-    { g: 'QR kodu', f: [
-      { k: 'qrMode', l: 'QR içeriği', t: 'select', o: [['mecard', 'Kartvizit (MECARD)'], ['url', 'Bağlantı (web adresi)']] }
     ] }
   ];
 
@@ -1790,21 +1790,12 @@ function buildCodewords(bytes, ver, lvl) {
   }
 
   var QR_STATE = null;
+  /* QR daima SAYFA ADRESINI acar (okutan telefon dijital kartvizite gider).
+     Rehbere kaydetme ise penceredeki "Kartvizit (.vcf)" dugmesiyle yapilir. */
   function buildQr() {
-    var list;
-    if (CFG.qrMode === 'url') {
-      list = [(CFG.web || '').trim() || location.href];
-    } else {
-      /* ONCE kisa MECARD: okunabilirlik icin modul sayisi dusuk kalsin.
-         NOTEsiz ve sosyal medyasiz (N + ORG + TEL + EMAIL). */
-      list = [mecard(false, true), mecard(false), 'MECARD:N:' + (CFG.name || '') + ';TEL:' + (CFG.tel || '') + ';;'];
-      list.push((CFG.web || '').trim() || location.href);
-    }
-    for (var i = 0; i < list.length; i++) {
-      var q = QRLIB.encode(list[i]);
-      if (q) return { qr: q, text: list[i] };
-    }
-    return null;
+    var url = (CFG.web || '').trim() || location.href;
+    var q = QRLIB.encode(url);
+    return q ? { qr: q, text: url } : null;
   }
 
   function qrSvg(qr, opt) {
@@ -1852,9 +1843,7 @@ function buildCodewords(bytes, ver, lvl) {
     if (!st) { showToast('QR hazırlanamadı'); return; }
     QR_STATE = st;
     $('#qrBig').innerHTML = qrSvg(st.qr, { uid: 'big' });
-    $('#qrMeta').textContent = CFG.qrMode === 'url'
-      ? 'Bağlantı: ' + st.text
-      : 'Kartvizit (MECARD) · sürüm ' + st.qr.version + '-' + st.qr.level;
+    $('#qrMeta').textContent = 'Bağlantı: ' + st.text;
     openModal('#qrModal');
   }
 
